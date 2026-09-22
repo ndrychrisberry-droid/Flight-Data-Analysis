@@ -1,71 +1,54 @@
-Analisi e Predizione dei Ritardi dei Voli (2024)
-Progetto di analisi dati e machine learning su un campione di voli statunitensi del 2024.
-L'obiettivo è costruire un classificatore binario che preveda se un volo arriverà in ritardo
-di oltre 15 minuti.
+# ✈️ Flight Delay Prediction 2024: Data Analysis & Machine Learning
 
-Dataset
-Il file sorgente è data/flight_data_2024_sample.csv, con 35 colonne originali in inglese.
-Tutte le colonne vengono rinominate in italiano all'inizio del notebook.
+![Data Science](https://img.shields.io/badge/Data%20Science-EDA%20%7C%20Feature%20Engineering-blue)
+![Machine Learning](https://img.shields.io/badge/Machine%20Learning-Classification-orange)
+![Python](https://img.shields.io/badge/Python-Pandas%20%7C%20Scikit--Learn-green)
 
+## 📌 Panoramica del Progetto
+Questo progetto analizza e modella un campione di dati del traffico aereo statunitense del 2024 con l'obiettivo di sviluppare un **classificatore binario**. Il modello predice proattivamente se un volo subirà un ritardo significativo (superiore ai 15 minuti) all'arrivo. 
 
-Struttura del notebook
-1. Caricamento e traduzione
-Il dataset viene letto con pandas e le 35 colonne vengono rinominate secondo la convenzione
-italiana definita nel dizionario traduzione_totale.
-2. Pulizia dei dati
-Prima della pulizia viene prodotto un report diagnostico che mostra il numero di voli
-cancellati, dirottati e i valori nulli per colonna.
-Le operazioni eseguite sono:
+L'obiettivo di business è fornire uno strumento di supporto decisionale per ottimizzare la logistica aeroportuale, migliorare le comunicazioni ai passeggeri e mitigare i costi legati alle inefficienze operative.
 
-rimozione dei voli con cancellato == 1 o dirottato == 1
-eliminazione delle colonne a varianza zero (anno), ridondanti (citta_orig,
-stato_orig, citta_dest, stato_dest), identificatori non generalizzabili
-(num_volo) e colonne quasi interamente nulle (codice_cancellazione,
-cancellato, dirottato)
+---
 
-3. Feature engineering
-Vengono create le seguenti variabili:
+## 🛠️ Pipeline dei Dati e Architettura
 
-rotta: concatenazione di aeroporto di origine e destinazione (es. JFK-LAX)
-ora_partenza: ora estratta dal formato HHMM dell'orario previsto
-fascia_partenza: categoria temporale basata sull'ora di partenza
-(mattina 5-12, pomeriggio 12-18, sera 18-22, notte altrimenti)
-media_meteo_orig: media storica del ritardo meteo per aeroporto di origine
-media_ritardo_compagnia: media storica del ritardo vettore per compagnia
-media_traffico_orig: media storica del ritardo traffico per aeroporto di origine
-media_sicurezza_orig: media storica del ritardo sicurezza per aeroporto di origine
-media_ritardo_prec: media del ritardo da aereo precedente per aeroporto
-media_durata_rotta: durata media storica della rotta
+Il flusso di lavoro segue le best practice del ciclo di vita del Machine Learning:
 
-4. Definizione del target
-Dopo aver eliminato le righe senza ritardo_arrivo registrato, viene creata la
-variabile target:
-pythondf['in_ritardo'] = (df['ritardo_arrivo'] > 15).astype(int)
-5. Rimozione delle variabili future
-Prima della modellazione vengono rimosse tutte le colonne che sarebbero note
-solo a volo completato (ritardi effettivi, orari reali, tempi di rullaggio, ecc.),
-per evitare data leakage. Vengono anche rimossi gli identificatori non utili al
-modello (aeroporto_orig_cod, aeroporto_dest_cod, ora_part_prevista,
-ora_arr_prevista, data_volo).
-6. Analisi esplorativa (EDA)
-Vengono prodotti grafici con seaborn e matplotlib su:
+### 1. Data Cleaning & Preprocessing
+* **Traduzione e Standardizzazione:** Parsing del dataset `flight_data_2024_sample.csv` (35 feature originali) con mappatura e rinominazione automatica delle colonne per una gestione standardizzata in italiano.
+* **Data Quality:** Generazione di report diagnostici per l'identificazione di valori nulli. Filtraggio sistematico dei "rumori" statistici (voli cancellati o dirottati) ed eliminazione delle feature a varianza zero, ridondanti o non generalizzabili (es. `num_volo`).
 
-probabilità di ritardo per mese
-probabilità di ritardo per giorno della settimana (1 = lunedì, 7 = domenica)
-probabilità di ritardo per fascia oraria
-analisi delle medie storiche a confronto tra voli puntuali e in ritardo
+### 2. Feature Engineering Avanzata
+Per aumentare il potere predittivo del modello, i dati grezzi sono stati trasformati in feature analitiche e storiche:
+* **Feature Temporali/Spaziali:** Estrazione di `fascia_partenza` (mattina, pomeriggio, sera, notte) e creazione dell'identificativo `rotta` univoco.
+* **Ingegneria dei Dati Storici:** Calcolo delle medie storiche (aggregazioni) per aeroporto e per compagnia aerea al fine di isolare le cause latenti di ritardo:
+  * `media_meteo_orig` e `media_traffico_orig`
+  * `media_ritardo_compagnia` e `media_sicurezza_orig`
+  * `media_durata_rotta` e `media_ritardo_prec`
 
-7. Preparazione per il modello
-Le variabili categoriche (compagnia, rotta, fascia_partenza) vengono
-codificate numericamente con LabelEncoder. Le colonne fascia_distanza e
-media_sicurezza_orig vengono escluse da X.
-Il dataset viene diviso in train (80%) e test (20%) con split stratificato
-(random_state=42), poi scalato con StandardScaler.
-8. Addestramento e valutazione
-Vengono addestrati due modelli, entrambi con class_weight='balanced':
+### 3. Prevenzione del Data Leakage ⚠️
+*(Critical Step)* Prima della fase di addestramento, è stata applicata una rigorosa pulizia delle **variabili future**. Tutte le colonne note solo a volo completato (orari reali, tempi di rullaggio, ritardi effettivi) sono state rimosse per evitare dispersioni di dati (*Data Leakage*) e garantire che il modello valuti solo le informazioni disponibili al momento della previsione. Il target è stato binarizzato: `in_ritardo` (`ritardo_arrivo` > 15 min).
 
-LogisticRegression con max_iter=1000
-RandomForestClassifier con n_estimators=100
+### 4. Exploratory Data Analysis (EDA)
+Indagine visiva multivariata (Seaborn/Matplotlib) per individuare pattern nascosti:
+* Mappatura probabilistica dei ritardi per mese, giorno della settimana e fascia oraria.
+* Confronto statistico delle medie storiche tra voli puntuali e voli in ritardo.
 
-La valutazione include accuratezza, classification_report (precision, recall, F1)
-e matrici di confusione affiancate per i due modelli.
+### 5. Modellazione Predittiva e Valutazione
+Le feature categoriche sono state processate tramite `LabelEncoder`, mentre i dati numerici sono stati normalizzati con `StandardScaler`. Il dataset è stato suddiviso con **split stratificato** (80/20) per mantenere le proporzioni del target.
+
+Sono stati addestrati e messi in competizione due algoritmi, entrambi bilanciati (`class_weight='balanced'`) per gestire l'asimmetria delle classi:
+* **Logistic Regression:** Algoritmo interpretabile di baseline.
+* **Random Forest Classifier:** Modello d'insieme non lineare per catturare relazioni complesse (100 stimatori).
+
+**Metriche di Valutazione Estratte:** Accuratezza, Classification Report (Precision, Recall, F1-Score) e Matrici di Confusione comparative.
+
+---
+
+## 💻 Stack Tecnologico
+* **Linguaggio:** Python
+* **Data Manipulation:** Pandas, NumPy
+* **Data Visualization:** Matplotlib, Seaborn
+* **Machine Learning:** Scikit-Learn (Classificazione, Preprocessing, Model Evaluation)
+
